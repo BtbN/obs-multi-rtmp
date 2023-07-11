@@ -21,6 +21,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QComboBox>
 #include <QCheckBox>
 #include <QGroupBox>

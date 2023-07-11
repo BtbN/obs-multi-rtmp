@@ -18,10 +18,12 @@ class EditOutputWidgetImpl : public EditOutputWidget
     QLineEdit* v_keyframe_sec_ = 0;
     QLineEdit* v_bframes_ = 0;
     QLineEdit* v_resolution_ = 0;
+    QPlainTextEdit* v_extra_settings_ = 0;
     QLabel* v_warning_ = 0;
     QComboBox* aenc_ = 0;
     QLineEdit* a_bitrate_ = 0;
     QComboBox* a_mixer_ = 0;
+    QPlainTextEdit* a_extra_settings_ = 0;
 
     QCheckBox* syncStart_ = 0;
 
@@ -163,6 +165,14 @@ public:
                     }
                     ++currow;
                     {
+                        encLayout->addWidget(new QLabel(obs_module_text("ExtraOptions"), gp), currow, 0, 1, 2);
+                    }
+                    ++currow;
+                    {
+                        encLayout->addWidget(v_extra_settings_ = new QPlainTextEdit(gp), currow, 0, 1, 2);
+                    }
+                    ++currow;
+                    {
                         encLayout->addWidget(new QWidget(), currow, 0);
                         encLayout->setRowStretch(currow, 1);
                     }
@@ -201,6 +211,14 @@ public:
 
                         for(int i = 1; i <= 6; ++i)
                             a_mixer_->addItem(QString(std::to_string(i).c_str()), i - 1);
+                    }
+                    ++currow;
+                    {
+                        encLayout->addWidget(new QLabel(obs_module_text("ExtraOptions"), gp), currow, 0, 1, 2);
+                    }
+                    ++currow;
+                    {
+                        encLayout->addWidget(a_extra_settings_ = new QPlainTextEdit(gp), currow, 0, 1, 2);
                     }
                     gp->setLayout(encLayout);
                 }
@@ -305,6 +323,7 @@ public:
             v_keyframe_sec_->setText(obs_module_text("SameAsOBS"));
             v_bframes_->setEnabled(false);
             v_bframes_->setText(obs_module_text("SameAsOBS"));
+            v_extra_settings_->setEnabled(false);
             v_warning_->setVisible(false);
         }
         else
@@ -314,6 +333,7 @@ public:
             v_resolution_->setEnabled(true);
             v_keyframe_sec_->setEnabled(true);
             v_bframes_->setEnabled(true);
+            v_extra_settings_->setEnabled(true);
             v_warning_->setVisible(true);
         }
 
@@ -323,11 +343,13 @@ public:
             a_bitrate_->setText(obs_module_text("SameAsOBS"));
             a_bitrate_->setEnabled(false);
             a_mixer_->setEnabled(false);
+            a_extra_settings_->setEnabled(false);
         }
         else
         {
             a_bitrate_->setEnabled(true);
             a_mixer_->setEnabled(true);
+            a_extra_settings_->setEnabled(true);
         }
     }
 
@@ -351,10 +373,14 @@ public:
             try { conf_["v-bframes"] = std::stod(tostdu8(v_bframes_->text())); } catch(...) {}
         if (v_resolution_->isEnabled())
             conf_["v-resolution"] = v_resolution_->text();
+        if (v_extra_settings_->isEnabled())
+            conf_["v-extra-settings"] = v_extra_settings_->toPlainText();
         if (a_bitrate_->isEnabled())
             try { conf_["a-bitrate"] = std::stod(tostdu8(a_bitrate_->text())); } catch(...) {}
         if (a_mixer_->isEnabled())
             conf_["a-mixer"] = a_mixer_->currentData().toDouble();
+        if (a_extra_settings_->isEnabled())
+            conf_["a-extra-settings"] = a_extra_settings_->toPlainText();
     }
 
     void LoadConfig()
@@ -412,6 +438,10 @@ public:
             QJsonUtil::Get(conf_, "v-resolution", QString{})
         );
 
+        v_extra_settings_->setPlainText(
+            QJsonUtil::Get(conf_, "v-extra-settings", QString{})
+        );
+
         QJsonUtil::IfGet(conf_, "a-enc", [&](QString encid) {
             int idx = aenc_->findData(encid);
             if (idx >= 0)
@@ -431,6 +461,10 @@ public:
                 a_mixer_->setCurrentIndex(0);
             return val;
         });
+
+        a_extra_settings_->setPlainText(
+            QJsonUtil::Get(conf_, "a-extra-settings", QString{})
+        );
     }
 };
 

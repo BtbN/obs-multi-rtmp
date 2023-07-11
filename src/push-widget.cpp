@@ -216,6 +216,36 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
     }
 
 
+    void ApplyExtraSettings(obs_data_t* settings, const QString &data) {
+        QStringList lines = data.split('\n');
+        for (const QString& line: lines) {
+            QStringList line_data = line.split('=');
+            if (line_data.isEmpty())
+                continue;
+
+            QStringList name_data = line_data[0].split(':');
+            line_data.removeFirst();
+
+            QString name = name_data.value(0, "");
+            QString type = name_data.value(1, "s");
+            QString value = line_data.join('=');
+
+            if (name.trimmed().isEmpty())
+                continue;
+
+            if (type == "i") {
+                obs_data_set_int(settings, name.toUtf8().constData(), value.toLongLong());
+            } else if (type == "f" || type == "d") {
+                obs_data_set_double(settings, name.toUtf8().constData(), value.toDouble());
+            } else if (type == "b") {
+                obs_data_set_bool(settings, name.toUtf8().constData(), value.toInt() != 0);
+            } else {
+                obs_data_set_string(settings, name.toUtf8().constData(), value.toUtf8().constData());
+            }
+        }
+    }
+
+
     bool PrepareOutputEncoders()
     {
         if (!output_) {
@@ -234,6 +264,8 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
         auto a_mixer = QJsonUtil::Get(conf_, "a-mixer", 0);
         auto v_bframes = QJsonUtil::Get<int>(conf_, "v-bframes");
         auto resolution = QJsonUtil::Get<std::string>(conf_, "v-resolution");
+        auto v_extra_settings = QJsonUtil::Get(conf_, "v-extra-settings", QString());
+        auto a_extra_settings = QJsonUtil::Get(conf_, "a-extra-settings", QString());
         int v_width = -1, v_height = -1;
         
         {
@@ -293,6 +325,7 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
             obs_data_set_int(settings, "keyint_sec", v_keyframe_sec);
             if (v_bframes.has_value())
                 obs_data_set_int(settings, "bf", v_bframes.value());
+            ApplyExtraSettings(settings, v_extra_settings);
             venc = obs_video_encoder_create(venc_id.c_str(), "multi-rtmp-video-encoder", settings, nullptr);
             obs_data_release(settings);
             if (v_width > 0 && v_height > 0)
@@ -309,6 +342,7 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
                 return false;
             obs_data_t* settings = obs_data_create();
             obs_data_set_int(settings, "bitrate", a_bitrate);
+            ApplyExtraSettings(settings, a_extra_settings);
             aenc = obs_audio_encoder_create(aenc_id.c_str(), "multi-rtmp-audio-encoder", settings, a_mixer, nullptr);
             obs_data_release(settings);
         }
